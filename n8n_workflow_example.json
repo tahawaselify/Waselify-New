@@ -1,0 +1,195 @@
+{
+  "name": "WhatsApp Chatbot with Supabase Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message }}",
+              "operation": "contains",
+              "value2": "hello"
+            }
+          ]
+        }
+      },
+      "id": "message-filter",
+      "name": "Message Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "content": "You are a helpful WhatsApp chatbot assistant. Provide friendly and helpful responses."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ai-response",
+      "name": "AI Response",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "https://your-project.supabase.co/rest/v1/workflow_executions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "YOUR_SUPABASE_ANON_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_ANON_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflow_name",
+              "value": "WhatsApp Chatbot"
+            },
+            {
+              "name": "execution_time",
+              "value": "={{ $executionTime }}"
+            },
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $json.user_id || 'anonymous' }}"
+            },
+            {
+              "name": "metrics",
+              "value": "={{ JSON.stringify({ messages_processed: 1, ai_responses: 1, vector_queries: 0, files_processed: 0, embeddings_created: 0, memory_sessions: 1, non_text_messages: 0 }) }}"
+            },
+            {
+              "name": "output_data",
+              "value": "={{ JSON.stringify({ original_message: $json.message, ai_response: $('AI Response').json.choices[0].message.content }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-to-supabase",
+      "name": "Send to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: $('AI Response').json.choices[0].message.content, execution_id: $('Send to Supabase').json.id } }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, message: 'Message did not meet criteria for AI processing' } }}"
+      },
+      "id": "webhook-response-filtered",
+      "name": "Webhook Response (Filtered)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Filter": {
+      "main": [
+        [
+          {
+            "node": "AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Webhook Response (Filtered)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Response": {
+      "main": [
+        [
+          {
+            "node": "Send to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1"
+} 
