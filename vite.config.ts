@@ -9,7 +9,7 @@ export default defineConfig(({ mode}) => {
   
   return {
     base: './',
-    plugins: [react()]
+    plugins: [react()],
     server: {
       headers: {
         "Content-Security-Policy": `
