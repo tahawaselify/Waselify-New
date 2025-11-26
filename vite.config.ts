@@ -3,7 +3,22 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-export default defineConfig(({ mode }) => {
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    headers: {
+      "Content-Security-Policy": `
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.mathpix.com;
+        font-src 'self' data: https://fonts.gstatic.com https://cdn.mathpix.com;
+        img-src 'self' data: blob: https:;
+        connect-src 'self' https://waselify.onrender.com https://*.waselify.onrender.com https://*.supabase.co wss://*.supabase.co https://*.n8n.cloud;
+        frame-src 'self' https://*.supabase.co;
+      `.replace(/\s+/g, ' ').trim()
+    }
+  }
+}); => {
   // Load environment variables
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   
