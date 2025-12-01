@@ -68,15 +68,6 @@ const CustomWorkflowRequestForm: React.FC<CustomWorkflowRequestFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      toast({
-        title: t('customRequestForm.toasts.authRequiredTitle'),
-        description: t('customRequestForm.toasts.authRequiredDesc'),
-        variant: "destructive"
-      });
-      return;
-    }
-
     // Validate required fields
     if (!formData.workflowName.trim() || !formData.description.trim() || !formData.businessProblem.trim()) {
       toast({
@@ -139,7 +130,7 @@ const CustomWorkflowRequestForm: React.FC<CustomWorkflowRequestFormProps> = ({
       const { error } = await supabase
         .from('workflow_access_requests')
         .insert({
-          user_id: user.id,
+          user_id: user?.id || null,
           workflow_id: 'custom', // Special ID for custom workflows
           workflow_name: `Custom: ${formData.workflowName}`,
           status: 'pending',
