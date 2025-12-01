@@ -190,15 +190,6 @@ const Login = () => {
                 )}
               </Button>
             </form>
-
-                          <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-center text-sm text-gray-600">
-                  {t('auth.login.noAccount')}{' '}
-                  <Link to="/signup" className="text-waselify-600 hover:text-waselify-700 font-medium">
-                    {t('auth.login.signUp')}
-                  </Link>
-                </p>
-              </div>
           </CardContent>
         </Card>
 
