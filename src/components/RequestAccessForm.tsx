@@ -126,21 +126,12 @@ const RequestAccessForm = ({ workflow, isOpen, onClose }: RequestAccessFormProps
     setIsSubmitting(true);
 
     try {
-      // Get current user
+      // Get current user (optional - allow anonymous requests)
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to request access.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const userId = user?.id || null;
 
-      // First, update the user's profile with the form data
-      // Only update if the user provided new data
-      if (formData.fullName || formData.email || formData.phone || formData.company || formData.position) {
+      // If user is logged in, update their profile with the form data
+      if (user && (formData.fullName || formData.email || formData.phone || formData.company || formData.position)) {
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
@@ -163,11 +154,11 @@ const RequestAccessForm = ({ workflow, isOpen, onClose }: RequestAccessFormProps
         }
       }
 
-      // Then create access request
+      // Create access request (works with or without authentication)
       const { error } = await supabase
         .from('workflow_access_requests')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           workflow_id: workflow.id,
           workflow_name: workflow.name,
           status: 'pending',
@@ -191,35 +182,38 @@ const RequestAccessForm = ({ workflow, isOpen, onClose }: RequestAccessFormProps
             workflow_category: workflow.category,
             estimated_setup_cost: workflow.estimated_setup_cost,
             estimated_monthly_cost: workflow.estimated_monthly_cost,
-            complexity_level: workflow.complexity_level
+            complexity_level: workflow.complexity_level,
+            is_anonymous: !user // Track if this is an anonymous request
           })
         });
 
-      // Also save to workflow request history for tracking duration
-      const { error: historyError } = await supabase
-        .from('workflow_request_history')
-        .insert({
-          user_id: user.id,
-          workflow_id: workflow.id,
-          workflow_name: workflow.name,
-          status: 'pending',
-          form_data: {
-            fullName: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            position: formData.position,
-            requirements: formData.requirements,
+      // Also save to workflow request history for tracking duration (only if user is logged in)
+      if (user) {
+        const { error: historyError } = await supabase
+          .from('workflow_request_history')
+          .insert({
+            user_id: user.id,
+            workflow_id: workflow.id,
             workflow_name: workflow.name,
-            workflow_category: workflow.category,
-            estimated_setup_cost: workflow.estimated_setup_cost,
-            estimated_monthly_cost: workflow.estimated_monthly_cost,
-            complexity_level: workflow.complexity_level
-          }
-        });
+            status: 'pending',
+            form_data: {
+              fullName: formData.fullName,
+              email: formData.email,
+              phone: formData.phone,
+              company: formData.company,
+              position: formData.position,
+              requirements: formData.requirements,
+              workflow_name: workflow.name,
+              workflow_category: workflow.category,
+              estimated_setup_cost: workflow.estimated_setup_cost,
+              estimated_monthly_cost: workflow.estimated_monthly_cost,
+              complexity_level: workflow.complexity_level
+            }
+          });
 
-      if (historyError) {
-        console.error('Error saving to request history:', historyError);
+        if (historyError) {
+          console.error('Error saving to request history:', historyError);
+        }
       }
 
       if (error) {
@@ -227,10 +221,11 @@ const RequestAccessForm = ({ workflow, isOpen, onClose }: RequestAccessFormProps
           console.log('workflow_access_requests table does not exist, logging request');
           // For now, just log the request
           console.log('Workflow access request:', {
-            user_id: user.id,
+            user_id: userId,
             workflow_id: workflow.id,
             workflow_name: workflow.name,
-            formData
+            formData,
+            is_anonymous: !user
           });
         } else {
           throw error;
