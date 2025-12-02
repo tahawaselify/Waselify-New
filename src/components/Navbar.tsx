@@ -386,9 +386,19 @@ const Navbar = () => {
             >
               {t('nav.home')}
             </a>
-            {/* Show Services, Get Started, and Contact on homepage OR when user is not logged in */}
+            {/* Show Marketplace, Services, Get Started, and Contact on homepage OR when user is not logged in */}
             {(isHomepage || !user) && (
               <>
+                <a
+                  href="/marketplace"
+                  className="text-xl font-medium py-3 px-6 w-full text-center rounded-lg hover:bg-gray-100"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    document.body.style.overflow = '';
+                  }}
+                >
+                  {t('nav.marketplace', 'Marketplace')}
+                </a>
                 <a
                   href={isHomepage ? "#features" : "/#features"}
                   className="text-xl font-medium py-3 px-6 w-full text-center rounded-lg hover:bg-gray-100"
